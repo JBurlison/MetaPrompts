@@ -1,11 +1,24 @@
 ---
 name: validate-agent-files
-description: Validates GitHub Copilot customization files (agents, skills, prompts, instructions) for correct format and structure. Use when checking if agent files are properly configured, troubleshooting agent issues, or before committing new customization files.
+description: Validates AI coding assistant customization files (agents, skills, prompts, instructions) for correct format and structure. Works with GitHub Copilot, Claude Code, Codex, OpenCode, and other providers. Use when checking if agent files are properly configured, troubleshooting agent issues, or before committing new customization files.
 ---
 
 # Validate Agent Files
 
 Validates that agent, skill, prompt, and instruction files follow the correct format and structure.
+
+## Provider Folder Reference
+
+This skill works across multiple AI coding assistant providers:
+
+| Provider | Base Folder |
+|----------|-------------|
+| GitHub Copilot | `.github/` |
+| Claude Code | `.claude/` |
+| Codex | `.codex/` |
+| OpenCode | `.config/opencode/` |
+
+**Throughout this document, `<provider>/` represents your chosen provider's base folder.**
 
 ## When to Use
 
@@ -19,20 +32,22 @@ Validates that agent, skill, prompt, and instruction files follow the correct fo
 ### Step 1: Identify File Type
 
 Determine the type based on location and extension:
-- `.github/agents/*.md` → Agent file
-- `.github/skills/*/SKILL.md` → Skill file
-- `.github/prompts/*.prompt.md` → Prompt file
-- `.github/instructions/*.instructions.md` → Instruction file
+- `<provider>/agents/*.md` → Agent file (user-invokable)
+- `<provider>/agents/*.subagent.agent.md` → Sub-agent file (workflow component)
+- `<provider>/skills/*/SKILL.md` → Skill file
+- `<provider>/prompts/*.prompt.md` → Prompt file
+- `<provider>/instructions/*.instructions.md` → Instruction file
 
 ### Step 2: Apply Type-Specific Validation
 
-## Agent File Validation (`.github/agents/*.md`)
+## Agent File Validation (`<provider>/agents/*.md`)
 
 **Required Structure:**
 ```yaml
 ---
 name: agent-name
 description: When to use this agent (should include examples)
+user-invokable: true  # Optional, defaults to true
 ---
 
 [System prompt body]
@@ -41,6 +56,7 @@ description: When to use this agent (should include examples)
 **Supported Frontmatter Attributes:**
 - `name` (required) - Agent identifier
 - `description` (required) - When/how to use, with examples
+- `user-invokable` (optional) - Set to `false` for sub-agents (default: `true`)
 - `tools` - List of allowed tools
 - `model` - Specific model to use
 - `handoffs` - Other agents this can delegate to
@@ -51,14 +67,21 @@ description: When to use this agent (should include examples)
 3. ✓ `description` field exists (recommend 50+ characters with examples)
 4. ✓ Body content exists after frontmatter
 5. ✓ If `tools` specified, they are valid tool names
+6. ✓ If filename contains `.subagent.agent.md`, verify `user-invokable: false` is set
+
+**Naming Convention Checks:**
+- User-facing agents: `<name>.agent.md` or `<name>.md`
+- Sub-agents: `<name>.subagent.agent.md` with `user-invokable: false`
 
 **Common Issues:**
 - Missing `---` delimiters
 - Empty or minimal description
 - No usage examples in description
 - Body content missing or too brief
+- Sub-agent missing `user-invokable: false`
+- Sub-agent not using `.subagent.agent.md` naming convention
 
-## Skill File Validation (`.github/skills/*/SKILL.md`)
+## Skill File Validation (`<provider>/skills/*/SKILL.md`)
 
 **Required Structure:**
 ```yaml
@@ -92,7 +115,7 @@ description: What this skill does and when to use it.
 - Description too vague (should include trigger keywords)
 - Missing instructions in body
 
-## Prompt File Validation (`.github/prompts/*.prompt.md`)
+## Prompt File Validation (`<provider>/prompts/*.prompt.md`)
 
 **Required Structure:**
 ```yaml
@@ -120,7 +143,7 @@ description: What this prompt does
 - Invalid `mode` value
 - Undefined variables in template
 
-## Instruction File Validation (`.github/instructions/*.instructions.md`)
+## Instruction File Validation (`<provider>/instructions/*.instructions.md`)
 
 **Required Structure:**
 ```yaml
@@ -171,8 +194,7 @@ When validating all files, provide summary:
 
 | Type | Total | Valid | Warnings | Invalid |
 |------|-------|-------|----------|---------|
-| Agents | X | X | X | X |
-| Skills | X | X | X | X |
+| Agents | X | X | X | X || Sub-Agents | X | X | X | X || Skills | X | X | X | X |
 | Prompts | X | X | X | X |
 | Instructions | X | X | X | X |
 

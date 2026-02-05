@@ -1,11 +1,24 @@
 ---
 name: analyze-agent-overlap
-description: Analyzes existing agents, skills, prompts, and instructions to identify overlaps, redundancies, and conflicts. Use before creating new customization files to avoid duplication, when consolidating agents, or when troubleshooting conflicting behaviors.
+description: Analyzes existing agents, skills, prompts, and instructions to identify overlaps, redundancies, and conflicts. Works with GitHub Copilot, Claude Code, Codex, OpenCode, and other providers. Use before creating new customization files to avoid duplication, when consolidating agents, or when troubleshooting conflicting behaviors.
 ---
 
 # Analyze Agent Overlap
 
-Detects redundancy, overlap, and potential conflicts between GitHub Copilot customization files.
+Detects redundancy, overlap, and potential conflicts between AI coding assistant customization files.
+
+## Provider Folder Reference
+
+This skill works across multiple AI coding assistant providers:
+
+| Provider | Base Folder |
+|----------|-------------|
+| GitHub Copilot | `.github/` |
+| Claude Code | `.claude/` |
+| Codex | `.codex/` |
+| OpenCode | `.config/opencode/` |
+
+**Throughout this document, `<provider>/` represents your chosen provider's base folder.**
 
 ## When to Use
 
@@ -18,17 +31,18 @@ Detects redundancy, overlap, and potential conflicts between GitHub Copilot cust
 
 ### Step 1: Inventory Existing Items
 
-Scan these locations:
-- `.github/agents/*.md` - All agent definitions
-- `.github/skills/*/SKILL.md` - All skill definitions
-- `.github/prompts/*.prompt.md` - All prompt templates
-- `.github/instructions/*.instructions.md` - All instruction files
+Scan these locations (replace `<provider>/` with actual folder):
+- `<provider>/agents/*.md` - All agent definitions (including `.subagent.agent.md`)
+- `<provider>/skills/*/SKILL.md` - All skill definitions
+- `<provider>/prompts/*.prompt.md` - All prompt templates
+- `<provider>/instructions/*.instructions.md` - All instruction files
 
 For each item, extract:
 - **Name**: The identifier
 - **Purpose**: What problem it solves (from description)
 - **Domain**: What areas/topics it covers
 - **Triggers**: Keywords or scenarios that activate it
+- **User-Invokable**: Whether it's a user-facing agent or sub-agent
 
 ### Step 2: Compare Against Proposed Item
 

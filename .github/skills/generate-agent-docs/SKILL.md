@@ -1,11 +1,24 @@
 ---
 name: generate-agent-docs
-description: Generates documentation and usage guides for agents, skills, prompts, and instructions. Use when onboarding team members, creating README files for your customizations, or generating usage examples for existing agents.
+description: Generates documentation and usage guides for agents, skills, prompts, and instructions. Works with GitHub Copilot, Claude Code, Codex, OpenCode, and other providers. Use when onboarding team members, creating README files for your customizations, or generating usage examples for existing agents.
 ---
 
 # Generate Agent Documentation
 
-Creates user-friendly documentation for GitHub Copilot customization files.
+Creates user-friendly documentation for AI coding assistant customization files.
+
+## Provider Folder Reference
+
+This skill works across multiple AI coding assistant providers:
+
+| Provider | Base Folder |
+|----------|-------------|
+| GitHub Copilot | `.github/` |
+| Claude Code | `.claude/` |
+| Codex | `.codex/` |
+| OpenCode | `.config/opencode/` |
+
+**Throughout this document, `<provider>/` represents your chosen provider's base folder.**
 
 ## When to Use
 
@@ -166,17 +179,26 @@ These instructions automatically apply when you're working with files that match
 ### Catalog Documentation
 
 ```markdown
-# GitHub Copilot Customizations
+# AI Coding Assistant Customizations
 
 This document catalogs all custom agents, skills, prompts, and instructions configured for this project.
 
+## Provider
+[Specify which provider folder is used: `.github/`, `.claude/`, `.codex/`, `.config/opencode/`]
+
 ## Quick Reference
 
-### Agents
+### Agents (User-Invokable)
 
 | Agent | Purpose | Invoke With |
 |-------|---------|-------------|
 | [name] | [brief purpose] | `@[name]` |
+
+### Sub-Agents (Workflow Components)
+
+| Sub-Agent | Purpose | Used By |
+|-----------|---------|---------|
+| [name] | [brief purpose] | [parent workflow agent] |
 
 ### Skills
 

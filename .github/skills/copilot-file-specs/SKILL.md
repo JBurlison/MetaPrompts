@@ -1,27 +1,42 @@
 ---
 name: copilot-file-specs
-description: Contains the complete specifications for VS Code GitHub Copilot customization files including agents, skills, prompts, and instructions. Use this skill when you need to reference the correct file format, required fields, supported attributes, or file locations for any Copilot customization file.
+description: Contains the complete specifications for AI coding assistant customization files including agents, skills, prompts, and instructions. Works with GitHub Copilot, Claude Code, Codex, OpenCode, and other providers. Use this skill when you need to reference the correct file format, required fields, supported attributes, or file locations for any customization file.
 ---
 
-# VS Code Copilot Customization File Specifications
+# AI Coding Assistant Customization File Specifications
 
-This skill contains the authoritative specifications for all GitHub Copilot customization file types in VS Code.
+This skill contains the authoritative specifications for all AI coding assistant customization file types. These specifications work across multiple providers.
+
+## Provider Folder Mapping
+
+Different AI coding assistant providers use similar folder structures in their respective configuration directories:
+
+| Provider | Base Folder | Notes |
+|----------|-------------|-------|
+| GitHub Copilot | `.github/` | Most common, widely documented |
+| Claude Code | `.claude/` | Anthropic's Claude in VS Code |
+| Codex | `.codex/` | OpenAI Codex-based tools |
+| OpenCode | `.config/opencode/` | Open-source alternatives |
+
+**Throughout this document, `<provider>/` represents your chosen provider's base folder.** Replace with the appropriate directory for your environment.
 
 ## File Types Overview
 
 | Type | Extension | Location | Purpose |
 |------|-----------|----------|---------|
-| Agent | `.agent.md` or `.md` | `.github/agents/` | Custom AI personas with specialized behaviors |
-| Skill | `SKILL.md` | `.github/skills/<name>/` | Reusable capabilities (directory-based) |
-| Prompt | `.prompt.md` | `.github/prompts/` | Reusable prompt templates |
-| Instruction | `.instructions.md` | `.github/instructions/` | Contextual guidance for file types |
+| Agent | `.agent.md` or `.md` | `<provider>/agents/` | Custom AI personas with specialized behaviors |
+| Sub-Agent | `.subagent.agent.md` | `<provider>/agents/` | Workflow component agents (not user-invokable) |
+| Skill | `SKILL.md` | `<provider>/skills/<name>/` | Reusable capabilities (directory-based) |
+| Prompt | `.prompt.md` | `<provider>/prompts/` | Reusable prompt templates |
+| Instruction | `.instructions.md` | `<provider>/instructions/` | Contextual guidance for file types |
 
 ---
 
 ## Agent Files (`.agent.md`)
 
 ### Location
-- Workspace: `.github/agents/*.agent.md` or `.github/agents/*.md`
+- Workspace: `<provider>/agents/*.agent.md` or `<provider>/agents/*.md`
+- Sub-agents: `<provider>/agents/*.subagent.agent.md`
 - User profile: Available across workspaces
 
 ### File Structure
@@ -29,14 +44,18 @@ This skill contains the authoritative specifications for all GitHub Copilot cust
 ---
 name: agent-name
 description: Brief description shown as placeholder in chat input
+user-invokable: true
 argument-hint: Optional hint for user input
 tools: ['tool1', 'tool2']
-model: Claude Sonnet 4
+agents: ['*']  # or specific agent names, or [] for none
+model: Claude Sonnet 4  # or array for fallback: ['Claude Sonnet 4', 'GPT-4o']
+disable-model-invocation: false
 handoffs:
   - label: Button Text
     agent: target-agent
     prompt: Prompt to send
     send: false
+    model: GPT-5 (copilot)
 ---
 
 [Agent instructions body - Markdown content]
@@ -48,13 +67,21 @@ handoffs:
 |-----------|----------|-------------|
 | `name` | No | Agent name. If not specified, filename is used |
 | `description` | Yes (recommended) | Brief description shown as placeholder text in chat input field |
+| `user-invokable` | No | Set to `false` for sub-agents that shouldn't appear in agent picker (default: `true`) |
 | `argument-hint` | No | Hint text shown in chat input to guide users |
 | `tools` | No | List of tool/tool set names available to this agent. Use `<server>/*` for all MCP server tools |
-| `model` | No | AI model to use. If not specified, uses currently selected model |
-| `infer` | No | Boolean to enable use as subagent (default: true) |
+| `agents` | No | List of agent names available as subagents. Use `*` for all, `[]` for none. Requires `agent` tool in tools list |
+| `model` | No | AI model to use. Can be a string or array (prioritized fallback list). If not specified, uses currently selected model |
+| `disable-model-invocation` | No | Set to `true` to prevent this agent from being invoked as a subagent by other agents (default: `false`) |
+| `infer` | No | **Deprecated.** Use `user-invokable` and `disable-model-invocation` instead |
 | `target` | No | Target environment: `vscode` or `github-copilot` |
 | `mcp-servers` | No | MCP server configs for GitHub Copilot target |
 | `handoffs` | No | List of handoff configurations for workflow transitions |
+
+### Naming Conventions
+
+- **User-facing agents:** `<name>.agent.md` or `<name>.md`
+- **Sub-agents (workflow components):** `<name>.subagent.agent.md` with `user-invokable: false`
 
 ### Handoff Configuration
 
@@ -64,7 +91,16 @@ handoffs:
     agent: "target-agent-name"
     prompt: "Prompt text to send to target agent"
     send: false  # true to auto-submit, false to pre-fill only
+    model: "GPT-5 (copilot)"  # Optional: model for this handoff
 ```
+
+| Attribute | Required | Description |
+|-----------|----------|-------------|
+| `label` | Yes | Display text shown on the handoff button |
+| `agent` | Yes | Target agent identifier to switch to |
+| `prompt` | No | Prompt text to send to the target agent |
+| `send` | No | Auto-submit the prompt if `true` (default: `false`) |
+| `model` | No | Language model for the handoff. Use format `Model Name (vendor)`, e.g., `GPT-5 (copilot)` |
 
 ### Body Content
 - Markdown formatted instructions
@@ -97,12 +133,27 @@ You are in planning mode. Generate implementation plans without making code edit
 - Testing: Required tests
 ```
 
+### Sub-Agent Example
+```markdown
+---
+name: due-diligence
+user-invokable: false
+description: Deep analysis of requirements and integration points
+tools: ['search', 'fetch', 'usages']
+---
+
+# Due Diligence Analysis
+
+You perform deep analysis on requirements before planning begins.
+Identify integration points, dependencies, risks, and clarifications needed.
+```
+
 ---
 
 ## Skill Files (SKILL.md)
 
 ### Location
-- Workspace: `.github/skills/<skill-name>/SKILL.md`
+- Workspace: `<provider>/skills/<skill-name>/SKILL.md`
 - Each skill is a **directory** containing at minimum a `SKILL.md` file
 
 ### Directory Structure
@@ -190,7 +241,7 @@ Provide findings organized by severity: Critical, Warning, Info.
 ## Prompt Files (`.prompt.md`)
 
 ### Location
-- Workspace: `.github/prompts/*.prompt.md`
+- Workspace: `<provider>/prompts/*.prompt.md`
 - User profile: Available across workspaces
 
 ### File Structure
@@ -258,7 +309,7 @@ ${input:fields:Describe the form fields needed}
 ## Instruction Files (`.instructions.md`)
 
 ### Location
-- Workspace: `.github/instructions/*.instructions.md`
+- Workspace: `<provider>/instructions/*.instructions.md`
 - User profile: Available across workspaces
 
 ### File Structure
@@ -315,10 +366,11 @@ applyTo: "**/*.py"
 
 ## Other Instruction Types
 
-### Global Instructions (`.github/copilot-instructions.md`)
-- Single file at workspace root
+### Global Instructions (`<provider>/copilot-instructions.md`)
+- Single file at provider folder root  
 - Applies to ALL chat requests automatically
-- Enable with `github.copilot.chat.codeGeneration.useInstructionFiles` setting
+- Enable with `github.copilot.chat.codeGeneration.useInstructionFiles` setting (for GitHub Copilot)
+- Also recognized by GitHub Copilot in Visual Studio and GitHub.com
 
 ### AGENTS.md
 - Place at workspace root
@@ -326,6 +378,33 @@ applyTo: "**/*.py"
 - Useful for multi-agent workspaces
 - Enable with `chat.useAgentsMdFile` setting
 - Nested `AGENTS.md` files supported (experimental) with `chat.useNestedAgentsMdFiles`
+- When nested files enabled, VS Code searches recursively in subfolders
+
+### Organization-Level Instructions
+- Share instructions across multiple workspaces and repositories within a GitHub organization
+- Defined at the GitHub organization level
+- Enable with `github.copilot.chat.organizationInstructions.enabled` setting
+- Automatically detected and shown alongside personal/workspace instructions
+
+### Instruction Settings for Specific Scenarios
+
+You can configure custom instructions for specialized scenarios via VS Code settings:
+
+| Setting | Purpose |
+|---------|---------||
+| `github.copilot.chat.reviewSelection.instructions` | Code review instructions |
+| `github.copilot.chat.commitMessageGeneration.instructions` | Commit message generation |
+| `github.copilot.chat.pullRequestDescriptionGeneration.instructions` | PR title/description generation |
+
+**Format:** Array of objects with `text` (inline) or `file` (reference) property:
+```json
+{
+  "github.copilot.chat.reviewSelection.instructions": [
+    { "text": "Always check for security vulnerabilities." },
+    { "file": "guidance/review-guidelines.md" }
+  ]
+}
+```
 
 ---
 
@@ -343,32 +422,55 @@ Example: "Use #tool:githubRepo to access repository information."
 ## File Location Summary
 
 ```
-.github/
-├── copilot-instructions.md          # Global instructions (single file)
+<provider>/                              # .github/, .claude/, .codex/, .config/opencode/, etc.
+├── copilot-instructions.md             # Global instructions (single file)
 ├── agents/
-│   ├── my-agent.agent.md            # Custom agent (preferred extension)
-│   └── another-agent.md             # Custom agent (also valid)
+│   ├── my-agent.agent.md               # User-facing agent
+│   ├── another-agent.md                # User-facing agent (also valid)
+│   └── helper.subagent.agent.md        # Sub-agent (not user-invokable)
 ├── skills/
 │   └── my-skill/
-│       ├── SKILL.md                 # Required skill definition
-│       ├── scripts/                 # Optional executable code
-│       ├── references/              # Optional documentation
-│       └── assets/                  # Optional static resources
+│       ├── SKILL.md                    # Required skill definition
+│       ├── scripts/                    # Optional executable code
+│       ├── references/                 # Optional documentation
+│       └── assets/                     # Optional static resources
 ├── prompts/
-│   └── my-prompt.prompt.md          # Prompt template
+│   └── my-prompt.prompt.md             # Prompt template
 └── instructions/
-    └── python.instructions.md       # Contextual instructions
+    └── python.instructions.md          # Contextual instructions
 ```
 
 ---
 
 ## VS Code Settings Reference
 
+### Core Settings
+
 | Setting | Purpose |
-|---------|---------|
-| `github.copilot.chat.codeGeneration.useInstructionFiles` | Enable `.github/copilot-instructions.md` |
+|---------|---------||
+| `github.copilot.chat.codeGeneration.useInstructionFiles` | Enable `<provider>/copilot-instructions.md` |
 | `chat.instructionsFilesLocations` | Additional instruction file folders |
 | `chat.promptFilesLocations` | Additional prompt file folders |
+| `chat.agentFilesLocations` | Additional agent file folders |
 | `chat.useAgentsMdFile` | Enable `AGENTS.md` file |
 | `chat.useNestedAgentsMdFiles` | Enable nested `AGENTS.md` files |
 | `chat.useAgentSkills` | Enable skills in `.claude/skills/` or `.github/skills/` |
+
+### Instruction Behavior Settings
+
+| Setting | Purpose |
+|---------|---------||
+| `chat.includeApplyingInstructions` | Enable instructions with `applyTo` patterns |
+| `chat.includeReferencedInstructions` | Enable instructions referenced via Markdown links |
+| `github.copilot.chat.organizationInstructions.enabled` | Enable organization-level instructions |
+| `github.copilot.chat.organizationCustomAgents.enabled` | Enable organization-level custom agents |
+
+---
+
+## Tips for Defining Custom Instructions
+
+- Keep instructions short and self-contained - each should be a single, simple statement
+- For task or language-specific instructions, use multiple `.instructions.md` files with selective `applyTo` patterns
+- Store project-specific instructions in your workspace to share with team members
+- Reuse and reference instructions files in prompt files and custom agents to avoid duplication
+- Instructions are applied when creating/modifying files, typically not for read operations
