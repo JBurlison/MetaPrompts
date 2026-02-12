@@ -1,5 +1,5 @@
 ---
-name: copilot-file-specs
+name: agent-file-specs
 description: Contains the complete specifications for AI coding assistant customization files including agents, skills, prompts, and instructions. Works with GitHub Copilot, Claude Code, Codex, OpenCode, and other providers. Use this skill when you need to reference the correct file format, required fields, supported attributes, or file locations for any customization file.
 ---
 
