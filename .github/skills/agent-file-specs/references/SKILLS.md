@@ -47,7 +47,7 @@ setting.
 
 ## SKILL.md Format
 
-The `SKILL.md` file must contain YAML frontmatter followed by Markdown content.
+The `SKILL.md` file must contain YAML frontmatter followed by Markdown content. This should ideally be under 5000 tokens in total (frontmatter + body) to ensure efficient loading. Consider moving detailed instructions and resources to `references/` files if you exceed this.
 
 ### Minimal Example
 
