@@ -249,6 +249,11 @@ When creating a multi-agent workflow, you MUST:
 
 The workflow manager acts as the manager for the flow, deciding when to call each sub-agent and passing the necessary context. Sub-agents focus only on their scoped tasks and should not orchestrate other agents unless explicitly designed as nested flows.
 
+**CRITICAL: Question Relay Rule.** Sub-agents invoked via `runSubagent` cannot communicate directly with the user. They communicate only with the workflow manager. Therefore:
+- **Sub-agents MUST NOT use `#askQuestions`** to try to reach the user. Instead, they must return any unanswered questions or blockers as structured output in their response to the workflow manager.
+- **The workflow manager MUST relay** sub-agent questions to the user using `#askQuestions`, then re-invoke the sub-agent with the user's answers.
+- **The workflow manager MUST NEVER answer sub-agent questions itself** or fabricate information. It is a relay, not an oracle.
+
 ### Workflow Anatomy
 
 ```
@@ -300,6 +305,13 @@ handoffs:
 - Implementation phases: edit tools (`editFiles`)
 - Review phases: read + limited edit for fixes
 
+**5. How are sub-agent questions handled?**
+- Sub-agents CANNOT use `#askQuestions` — they don't talk to the user
+- Sub-agents return unanswered questions as structured output
+- The workflow manager relays those questions to the user via `#askQuestions`
+- The workflow manager re-invokes the sub-agent with the user's answers
+- The workflow manager NEVER answers sub-agent questions itself
+
 ### Standard Development Workflow Pattern
 
 The recommended workflow for feature development follows this pattern:
@@ -323,8 +335,10 @@ Requirements → Due Diligence → Plan → Implement → Review
 Workflow Manager Agent (descriptive name)
   ↓ runSubagent("requirements-gatherer")
 Requirements Gatherer Sub-Agent (read-only tools)
-  ↓ return requirements document
+  ↓ return requirements document (may include "Questions for User")
 Workflow Manager Agent
+  ↓ if sub-agent returned questions → relay to user via #askQuestions
+  ↓ re-invoke sub-agent with user's answers (loop until no questions remain)
   ↓ runSubagent("due-diligence")
 Due Diligence Sub-Agent (read-only + fetch tools)
   ↓ return analysis: integration points, risks, clarifications needed
@@ -388,6 +402,13 @@ handoffs:
 You orchestrate the complete feature development process.
 Invoke sub-agents in order: requirements -> due-diligence -> planner -> implementer -> reviewer
 Use runSubagent to call each phase and pass context between them.
+
+## Question Relay Protocol
+Sub-agents cannot talk to the user. You are the relay between sub-agents and the user.
+- When a sub-agent returns unanswered questions or blockers, you MUST surface them to the user using #askQuestions.
+- NEVER answer sub-agent questions yourself or fabricate information.
+- After receiving user answers, re-invoke the sub-agent with the original context plus the user's answers.
+- Only proceed to the next phase when the current sub-agent has no remaining blockers.
 ```
 
 **Sub-Agents (not user-invokable):**
@@ -403,7 +424,9 @@ tools: ['search', 'fetch']
 
 # Requirements Gathering
 You gather comprehensive requirements for features.
-Ask clarifying questions. Document functional and non-functional requirements. Use #askQuestions tool to clarify with the user.
+Document functional and non-functional requirements.
+
+**Important:** You are a sub-agent and cannot talk to the user directly. If you need clarification, return your unanswered questions as a structured list in your output under a `## Questions for User` section. The workflow manager will relay them to the user and re-invoke you with answers.
 ```
 
 ```markdown
@@ -427,7 +450,9 @@ You perform deep analysis on requirements before planning begins.
 6. **Clarifications Needed** - List questions that must be answered before proceeding
 
 ## Output
-Provide a structured analysis with clear recommendations and blockers. Use #askQuestions tool to clarify with the user.
+Provide a structured analysis with clear recommendations and blockers.
+
+**Important:** You are a sub-agent and cannot talk to the user directly. If you need clarification, return your unanswered questions as a structured list in your output under a `## Questions for User` section. The workflow manager will relay them to the user and re-invoke you with answers.
 ```
 
 ```markdown
@@ -441,7 +466,9 @@ tools: ['search', 'fetch', 'usages']
 
 # Planning Instructions
 You analyze requirements and due diligence output to create detailed implementation plans.
-Never edit code directly. Your output is a plan document. Use #askQuestions tool to clarify with the user.
+Never edit code directly. Your output is a plan document.
+
+**Important:** You are a sub-agent and cannot talk to the user directly. If you need clarification, return your unanswered questions as a structured list in your output under a `## Questions for User` section. The workflow manager will relay them to the user and re-invoke you with answers.
 
 ## Plan Structure
 1. Overview
@@ -665,6 +692,8 @@ Before finalizing any creation, verify:
 - [ ] Tool permissions match each phase's needs (read-only for planning/due-diligence, etc.)
 - [ ] `send: true/false` is appropriate for each transition
 - [ ] Workflow can handle failure/rollback gracefully
+- [ ] Sub-agents do NOT use `#askQuestions` — they return questions in their output instead
+- [ ] Workflow manager relays sub-agent questions to user and never answers them itself
 - [ ] User has reviewed the complete workflow design
 
 ---
