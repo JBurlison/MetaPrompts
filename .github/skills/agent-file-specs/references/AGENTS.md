@@ -32,6 +32,10 @@ setting.
 
 ## File Structure
 
+### User-Facing Agent
+
+A standard interactive agent with a focused expertise area.
+
 ```markdown
 ---
 name: agent-name
@@ -39,9 +43,25 @@ description: Brief description shown as placeholder in chat input
 user-invokable: true
 argument-hint: Optional hint for user input
 tools: ['tool1', 'tool2']
-agents: ['*']
 model: Claude Sonnet 4
 disable-model-invocation: false
+---
+
+[Agent instructions body — Markdown content]
+```
+
+### Orchestrator / Workflow Manager Agent
+
+An orchestrator is a user-facing agent that manages a multi-step workflow by invoking sub-agents. It must include the `agent` tool to enable subagent invocation, and defines `agents` to control which sub-agents it can call. Handoffs present the user with transition buttons at the end of a response. Orchestrators do **not** edit code directly.
+
+```markdown
+---
+name: workflow-name
+description: Brief description shown as placeholder in chat input
+user-invokable: true
+tools: ['tool1', 'tool2', 'agent']  # 'agent' tool required to invoke sub-agents
+agents: ['*']  # '*' for all, '[]' for none, or a list of sub-agent names
+model: Claude Sonnet 4
 handoffs:
   - label: Button Text
     agent: target-agent
@@ -50,7 +70,23 @@ handoffs:
     model: GPT-5 (copilot)
 ---
 
-[Agent instructions body — Markdown content]
+[Orchestrator instructions body — defines workflow order and sub-agent coordination]
+```
+
+### Sub-Agent
+
+Sub-agents must set `user-invokable: false` and must **not** include `handoffs` — handoffs are only rendered for user-facing agents. Sub-agents cannot communicate with the user directly; they return output (including any questions) to the orchestrator.
+
+```markdown
+---
+name: agent-name
+description: Brief description of what this sub-agent does
+user-invokable: false
+tools: ['tool1', 'tool2']
+model: Claude Sonnet 4
+---
+
+[Agent instructions body — scoped to this phase only; no handoffs, no user interaction]
 ```
 
 ---
@@ -81,14 +117,20 @@ handoffs:
 | User-facing agent | `<name>.agent.md` or `<name>.md` | `planner.agent.md` |
 | Sub-agent (workflow component) | `<name>.subagent.agent.md` | `due-diligence.subagent.agent.md` |
 
-- Sub-agents should set `user-invokable: false` so they don't appear in the
+- Sub-agents must set `user-invokable: false` so they don't appear in the
   agent picker.
+- Sub-agents must **not** include `handoffs` — handoff buttons are only
+  rendered for user-facing agents, not sub-agents.
 - Any `.md` file in the `<provider>/agents/` folder is detected as a custom
   agent.
 
 ---
 
 ## Handoff Configuration
+
+> **Sub-agents must not define handoffs.** Handoff buttons are only rendered
+> for user-facing agents (`user-invokable: true`). Including `handoffs` in a
+> sub-agent has no effect and should be omitted.
 
 Handoffs create guided sequential workflows between agents. After a chat
 response completes, handoff buttons appear to let users transition to the next
@@ -154,7 +196,7 @@ If a specified tool is not available, it is silently ignored.
 
 ---
 
-## Example: Planning Agent
+## Example: Planning Agent (user-facing)
 
 ```markdown
 ---
